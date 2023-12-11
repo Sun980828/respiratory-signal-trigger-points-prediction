@@ -6,7 +6,7 @@ import numpy as np
 from utils import listcsv, TrainTestSplit
 from model import Model
 
-# test
+# test version
 
 def extract_datasets(csv_list, input_dim, output_dim):
     if len(csv_list):
