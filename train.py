@@ -4,9 +4,9 @@ from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
 from utils import listcsv, TrainTestSplit
-from lstm_model import My_RNN
+from model import Model
 
-
+# test
 
 def extract_datasets(csv_list, input_dim, output_dim):
     if len(csv_list):
@@ -83,7 +83,7 @@ def main():
     USE_CUDA = torch.cuda.is_available()
     device = 'cuda' if USE_CUDA else 'cpu'
 
-    model = My_RNN(num_layers=num_layers, input_dim=input_size, hidden_dim=hidden_dim, output_dim=output_dim).to(device)
+    model = Model(num_layers=num_layers, input_dim=input_size, hidden_dim=hidden_dim, output_dim=output_dim).to(device)
     criterion = MAEloss().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
