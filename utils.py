@@ -170,3 +170,62 @@ def real_time_sig_process(sensor_value, win_len=9, sav_order=5, mode='nearest', 
     samp_norm = (norm_sensor + 2*IQR) / 4 / IQR
     samp_norm = np.clip(samp_norm, 0, 1)
     return samp_norm
+
+def find_cutpoints(TP_det_index_list, TP_distance=50):
+    trash_points = np.array(TP_det_index_list[1:])[np.diff(TP_det_index_list)>TP_distance]
+    cut_points = []
+    for i in trash_points:
+        trash_point_idx = TP_det_index_list.index(i)
+        cut_points.append((TP_det_index_list[trash_point_idx-1], TP_det_index_list[trash_point_idx]))
+    return cut_points
+
+def cut_sig(cut_points, res_sig, least_sig_len=73):
+
+    best_sig = []
+    last_end = 0
+    for i, (start, end) in enumerate(cut_points):
+        current_start = start - last_end
+        current_end = end - last_end
+        last_end = end
+        cutted = res_sig[:current_start]
+        res_sig = res_sig[current_end:]
+        best_sig.append(cutted)
+        if i == len(cut_points) - 1:
+            best_sig.append(res_sig)
+        
+    best_sig = [sig for sig in best_sig if len(sig) >= least_sig_len]
+    
+    return best_sig
+
+def trig_point_detect(Y_arr, latency=6, num_slope=5, num_label=15, num_input=50):
+    TP_det_list,TP_det_index_list = [],[]
+    InEx_label,last_i_arr = -1, -2
+    iterate_Pred = 1
+    # detect all TP of preprocessed signal
+    for i_arr in range(len(Y_arr)):
+        if i_arr % iterate_Pred != 0:
+            continue
+        else:
+            #start_time = time.time()
+            
+            ref_TP,label_TP = False,False
+            ref_TP,label_TP = TP_dect(Y_arr[i_arr],latency,num_slope,num_label)
+            if ref_TP and label_TP * InEx_label == -1:
+                TP_pot_index = ref_TP + i_arr + num_input
+                TP_pot       = Y_arr[i_arr][ref_TP]
+                # save the TP potential
+                last_pot_index,last_pot,last_pot_label,last_i_arr = TP_pot_index, TP_pot, label_TP, i_arr
+                
+            elif (ref_TP and i_arr - last_i_arr == iterate_Pred and label_TP * InEx_label == 1):
+                TP_det_index, TP_det, InEx_label = last_pot_index, last_pot, -InEx_label
+                TP_det_index_list.append(TP_det_index)
+                TP_det_list.append(TP_det)
+            
+            # if last time has TP, this time no TP, the TP is the 'TP'
+            elif (i_arr - last_i_arr == iterate_Pred and InEx_label * last_pot_label == -1):
+                TP_det_index, TP_det, InEx_label = last_pot_index, last_pot, -InEx_label
+                TP_det_index_list.append(TP_det_index)
+                TP_det_list.append(TP_det)
+
+    return TP_det_index_list, TP_det_list
+
